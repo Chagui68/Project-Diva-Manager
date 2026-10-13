@@ -1,74 +1,74 @@
 # DivaLoader
 
-Mod loader propio para **Hatsune Miku: Project DIVA Mega Mix+** (Steam). Se carga como `dinput8.dll` y es
-compatible con la estructura de mods de DivaModLoader:
+Mod loader for **Hatsune Miku: Project DIVA Mega Mix+** (Steam). It is loaded as `dinput8.dll` and is
+compatible with the DivaModLoader mod layout:
 
 ```
 mods/<Mod>/config.toml
 mods/<Mod>/rom/...
 ```
 
-## Qué hace
+## What it does
 
-| Función | Cómo |
+| Feature | How |
 |---|---|
-| Archivos sueltos de mods | Inserta las carpetas `include` de cada mod activo delante de las rutas `rom` del juego. |
-| Bases de datos `mod_*` (`mod_pv_db.txt`, `mod_spr_db.bin`, etc.) | Añade cada mod a la lista de prefijos de bases de datos del juego y resuelve sus rutas. |
-| PV ID mayores que 999 | Parchea el bucle que lee `pv_db` para que recorra los IDs que existen en el archivo. |
-| Extremo y Extra Extremo desbloqueados en canciones custom | Activa el byte `0x11D` de su registro de puntuación (el mismo que usa [ExPatch](https://github.com/nastys/ExPatch), MIT). Con `unlock_extreme = "all"` aplica el parche de ExPatch a todas las canciones. |
-| Puntuaciones de canciones nuevas | Crea huecos de puntuación para IDs que el guardado del juego no contempla y los guarda en `DivaLoader_scores.bin`. |
-| `.txt` sueltos que el juego solo leería del CPK | Hook de apertura de archivos. |
-| Límites de módulos (1035) y trajes (498), y comprobación de fecha de `pv_db` | Parches de bytes. |
-| Mods DLL | Carga la `dll = [...]` de cada mod y llama a sus funciones exportadas `PreInit`, `Init` y `PostInit`. No soporta `D3DInit`, `OnFrame` ni `OnResize`. |
-| Arranque fuera de Steam | Redirige `SteamAPI_RestartAppIfNecessary` y escribe `steam_appid.txt`. |
-| Diagnóstico | Escribe `DivaLoader.log` junto al juego, con las excepciones fatales y la dirección donde ocurrieron. |
+| Loose mod files | Puts the `include` folders of every enabled mod in front of the game's `rom` search paths. |
+| `mod_*` databases (`mod_pv_db.txt`, `mod_spr_db.bin`, ...) | Adds each mod to the game's database prefix list and resolves their paths. |
+| PV IDs above 999 | Patches the `pv_db` parsing loop so it walks the IDs actually present in the file. |
+| Extreme and Extra Extreme unlocked on custom songs | Sets byte `0x11D` of their score entry (the same flag used by [ExPatch](https://github.com/nastys/ExPatch), MIT). With `unlock_extreme = "all"` the ExPatch patch is applied to every song. |
+| Scores for new songs | Provides score slots for IDs the game's save data has no room for, stored in `DivaLoader_scores.bin`. |
+| Loose `.txt` files the game would only read from a CPK | File-open hook. |
+| Module (1035) and costume (498) limits, `pv_db` date check | Byte patches. |
+| DLL mods | Loads each mod's `dll = [...]` and calls its exported `PreInit`, `Init` and `PostInit`. `D3DInit`, `OnFrame` and `OnResize` are not supported. |
+| Starting outside Steam | Redirects `SteamAPI_RestartAppIfNecessary` and writes `steam_appid.txt`. |
+| Diagnostics | Writes `DivaLoader.log` next to the game, including fatal exceptions and where they happened. |
 
-El motor de hooks (`src/Hook.cpp`) es propio y no usa Detours ni MinHook. Cada hook declara cuántos bytes
-reemplaza y dónde hay saltos relativos que hay que reubicar.
+The hook engine (`src/Hook.cpp`) is self-contained and does not use Detours or MinHook. Each hook states how
+many bytes it replaces and where relative jumps need relocating.
 
-## Compilar
+## Building
 
-Requiere Visual Studio Build Tools 2022 con la carga de trabajo «Desarrollo de escritorio con C++».
+Requires Visual Studio Build Tools 2022 with the "Desktop development with C++" workload.
 
 ```bash
 loader\build.bat
 ```
 
-El resultado queda en `loader\build\dinput8.dll`. El repositorio también trae una copia ya compilada en
-`loader\bin\dinput8.dll`, así que no hace falta compilar para usarlo. El botón **Instalar DivaLoader** de
-Diva Manager copia al juego la versión compilada en local si existe, o si no la de `loader\bin`. Si ya
-había otro `dinput8.dll`, lo guarda como `dinput8.dll.bak`.
+The output is `loader\build\dinput8.dll`. The repository also ships a prebuilt copy in `loader\bin\dinput8.dll`,
+so building is not needed to use it. The **Instalar DivaLoader** button in Diva Manager copies the local build
+to the game if it exists, otherwise the one in `loader\bin`. An existing foreign `dinput8.dll` is kept as
+`dinput8.dll.bak`.
 
-Pruebas del motor de hooks y del lector TOML, sin el juego:
+Tests for the hook engine and the TOML reader, without the game:
 
 ```bash
 loader\tests\build_test.bat
 ```
 
-## config.toml (carpeta del juego)
+## config.toml (game folder)
 
 ```toml
-enabled = true      # false desactiva el loader
-console = false     # true abre una consola con el log
-mods = "mods"       # carpeta de mods
-priority = [        # opcional: orden de carga, el primero tiene más prioridad
-  "MiMod",
+enabled = true      # false disables the loader
+console = false     # true opens a console with the log
+mods = "mods"       # mods folder
+priority = [        # optional: load order, the first one has the highest priority
+  "MyMod",
 ]
-unlock_extreme = "custom"  # "custom" (canciones nuevas), "all" (todas) o "none"
-debug_skip = []     # diagnóstico: "patches", "scores", "pv", "cpk", "db", "rom"
+unlock_extreme = "custom"  # "custom" (new songs), "all" (every song) or "none"
+debug_skip = []     # diagnostics: "patches", "scores", "pv", "cpk", "db", "rom"
 ```
 
-Sin `priority`, los mods cargan en orden alfabético. Con `priority`, solo cargan los mods que aparecen en la lista.
+Without `priority`, mods load in alphabetical order. With `priority`, only the listed mods are loaded.
 
-## Compatibilidad
+## Compatibility
 
-Las direcciones se buscan por patrón de bytes. Primero se comprueban en la dirección que tienen en la build
-actual de Steam y, si no coinciden, se busca en todo el ejecutable. Si una actualización del juego cambia el
-código, el loader avisa y el juego arranca sin mods.
+Addresses are found by byte pattern. Each one is first checked at its address in the current Steam build and,
+if it does not match, searched for in the whole executable. If a game update changes the code, the loader
+shows a warning and the game starts without mods.
 
-## Créditos
+## Credits
 
-Los patrones de bytes, los offsets de los parches y la técnica de rutas `rom` y prefijos de bases de datos
-vienen de [DivaModLoader](https://github.com/blueskythlikesclouds/DivaModLoader) (licencia MIT). De ahí
-también sale la plantilla de puntuación vacía (`src/EmptyScore.inc`). El código de este loader es una
-implementación nueva.
+Byte patterns, patch offsets and the `rom` path / database prefix technique come from
+[DivaModLoader](https://github.com/blueskythlikesclouds/DivaModLoader) (MIT License), as does the empty score
+template (`src/EmptyScore.inc`). The loader code itself is a new implementation. See
+[THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
