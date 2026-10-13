@@ -18,9 +18,9 @@ CHAIN_STEP_PX = 56
 # Multi-note shapes (offsets in px from the note position, y grows downwards), so the number of
 # buttons can be read from the shape: 2 = row, 3 = triangle, 4 = square.
 MULTI_SHAPES = {
-    2: [(-80, 0), (80, 0)],
-    3: [(0, -95), (-95, 70), (95, 70)],              # top, bottom-left, bottom-right
-    4: [(-80, -80), (80, -80), (-80, 80), (80, 80)],  # top-left, top-right, bottom-left, bottom-right
+    2: [(-210, 0), (210, 0)],
+    3: [(0, -190), (-220, 130), (220, 130)],              # top, bottom-left, bottom-right
+    4: [(-170, -170), (170, -170), (-170, 170), (170, 170)],  # top-left, top-right, bottom-left, bottom-right
 }
 # Where each button prefers to sit, like a controller's face buttons (△ up, ○ right, × down, □ left).
 SLOT_PREFERENCE = {
