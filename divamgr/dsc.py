@@ -1,4 +1,4 @@
-"""Writer for Future Tone style DSC chart scripts (the format Mega Mix+ reads).
+﻿"""Writer for Future Tone style DSC chart scripts (the format Mega Mix+ reads).
 
 Opcode ids and parameter counts follow the FT table of Open PD Script Editor (opcode_db/db.json).
 File layout: int32 LE signature, then (opcode, params...) int32 LE words.
@@ -61,7 +61,7 @@ class Script:
             f.write(self.to_bytes())
 
 
-def read_targets(path):
+def read_targets(path, full=False):
     """Parse a DSC written by this module; returns [(hit_time_s, type, x_px, y_px)] for previews/tests.
     Hit time is relative to MUSIC_PLAY."""
     by_id = {op: (name, n) for name, (op, n) in OPCODES.items()}
@@ -79,7 +79,10 @@ def read_targets(path):
         elif name == "MUSIC_PLAY":
             music = t
         elif name == "TARGET":
-            res.append((t + fly, p[0], p[1] / POS_SCALE, p[2] / POS_SCALE))
+            entry = (t + fly, p[0], p[1] / POS_SCALE, p[2] / POS_SCALE)
+            if full:  # + approach angle (degrees), distance (px), amplitude, frequency
+                entry += (p[3] / 1000, p[4] / POS_SCALE, p[5], p[6])
+            res.append(entry)
         elif name == "END":
             break
         i += 1 + n

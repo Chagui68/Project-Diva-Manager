@@ -22,6 +22,7 @@ MULTI_SHAPES = {
     3: [(0, -190), (-220, 130), (220, 130)],              # top, bottom-left, bottom-right
     4: [(-170, -170), (170, -170), (-170, 170), (170, 170)],  # top-left, top-right, bottom-left, bottom-right
 }
+MULTI_DISTANCE_PX = 1000  # how far out the shrinking shape starts (average over the group)
 # Where each button prefers to sit, like a controller's face buttons (△ up, ○ right, × down, □ left).
 SLOT_PREFERENCE = {
     2: {SQUARE: 0, CROSS: 0, TRIANGLE: 1, CIRCLE: 1},
@@ -348,8 +349,20 @@ def build_script(a, notes, has_movie, offset_ms=0.0, lead_in=None):
                 s.target(spawn + k * CHAIN_STEP_BEATS * beat, n.slide, n.x + direction * k * CHAIN_STEP_PX, n.y,
                          n.angle, frequency=n.freq)
             continue
-        # multi-notes: row (2), triangle (3) or square (4) centred on the note, all from the same side
-        for button, (dx, dy) in multi_layout([n.type] + list(n.extra)):
-            s.target(spawn, button, n.x + dx, n.y + dy, n.angle, frequency=n.freq)
+        layout = multi_layout([n.type] + list(n.extra))
+        if len(layout) == 1:
+            s.target(spawn, n.type, n.x, n.y, n.angle, frequency=n.freq)
+            continue
+        # multi-notes: row (2), triangle (3) or square (4). Like official charts, each note flies in
+        # straight from outside the shape along the line from its centre, so the flying notes form a
+        # bigger copy of the shape that shrinks onto the targets.
+        cx = sum(dx for _, (dx, _dy) in layout) / len(layout)
+        cy = sum(dy for _, (_dx, dy) in layout) / len(layout)
+        radii = [math.hypot(dx - cx, dy - cy) for _, (dx, dy) in layout]
+        mean_r = sum(radii) / len(radii)
+        for (button, (dx, dy)), r in zip(layout, radii):
+            angle = math.degrees(math.atan2(dx - cx, -(dy - cy))) % 360  # 0 = from above, clockwise
+            s.target(spawn, button, n.x + dx, n.y + dy, angle, distance_px=MULTI_DISTANCE_PX * r / mean_r,
+                     frequency=0)
     s.add(lead + a.duration + 0.3, "PV_END")
     return s

@@ -1,5 +1,6 @@
-"""Analysis + chart generation on synthetic songs: tempo, beat alignment, DSC round trip, pv_db.
+﻿"""Analysis + chart generation on synthetic songs: tempo, beat alignment, DSC round trip, pv_db.
 Run: python tests\\test_charts.py"""
+import math
 import os
 import sys
 import tempfile
@@ -38,6 +39,34 @@ def check_multi_shapes(targets):
             assert len(xs) == 2 and len(ys) == 2 and xs[1] - xs[0] == ys[1] - ys[0], f"no es cuadrado: {pts}"
 
 
+def check_multi_approach(path):
+    """Notes of a multi-note fly in from outside the shape: where they appear they form a bigger copy of
+    the shape around the same centre (a shrinking triangle/square), with no wave."""
+    groups = {}
+    for t, typ, x, y, angle, dist, _amp, freq in dsc.read_targets(path, full=True):
+        if typ < 8:
+            groups.setdefault(round(t, 4), []).append((x, y, angle, dist, freq))
+    checked = 0
+    for pts in groups.values():
+        if len(pts) < 2:
+            continue
+        cx = sum(p[0] for p in pts) / len(pts)
+        cy = sum(p[1] for p in pts) / len(pts)
+        scales = []
+        for x, y, angle, dist, freq in pts:
+            sx = x + math.sin(math.radians(angle)) * dist
+            sy = y - math.cos(math.radians(angle)) * dist
+            assert freq == 0, "las notas múltiples entran en línea recta"
+            # start point lies on the ray from the centre through the target, further out
+            scale = math.hypot(sx - cx, sy - cy) / math.hypot(x - cx, y - cy)
+            cross = (x - cx) * (sy - cy) - (y - cy) * (sx - cx)
+            assert abs(cross) / math.hypot(sx - cx, sy - cy) < 3, "la nota no entra desde el centro de la figura"
+            scales.append(scale)
+        assert min(scales) > 2 and max(scales) - min(scales) < 0.05, f"la figura no se encoge uniforme: {scales}"
+        checked += 1
+    return checked
+
+
 def check_song(tmp, bpm):
     wav = make_song(os.path.join(tmp, f"synth_{int(bpm)}.wav"), bpm)
     a = analysis.analyze(wav)
@@ -58,6 +87,7 @@ def check_song(tmp, bpm):
         grid = beat * chartgen.CHAIN_STEP_BEATS  # chain pieces sit on 32nd notes, the rest on 16ths
         assert max(abs(h - round(h / grid) * grid) for h, *_ in back) < 0.002, "nota fuera de la rejilla"
         check_multi_shapes(back)
+        check_multi_approach(path)
         types = {t for _, t, *_ in back}
         assert types <= set(range(8)) | {chartgen.SLIDE_L, chartgen.SLIDE_R, chartgen.CHAIN_L, chartgen.CHAIN_R}
         assert max(len(n.extra) for n in notes) + 1 <= max(1, chartgen.DIFFS[d].max_multi)
