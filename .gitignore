@@ -4,5 +4,6 @@ settings.json
 tools/
 loader/build/
 downloads/
+decompiled/
 .idea/
 *.log

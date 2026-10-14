@@ -65,9 +65,27 @@ The analysis lives in `divamgr/analysis.py` and only uses numpy and scipy (libro
 | Note timing | Strong onsets quantised to the grid (quarter, eighth or sixteenth notes depending on difficulty). Louder sections get more notes. |
 | Button (△ ○ × □) | The frequency band that stands out on that hit: low = ×, low-mid = ○, high-mid = □, high = △. Fast streams share a button, as in official charts. |
 | Holds | Tonal sounds that keep ringing for more than a beat (long vocals or synths). |
-| Multi-notes | Accents where every band hits at once (cymbal, kick and chord): 2 buttons from Normal, 3 on Hard and up to 4 on Extreme and Extra Extreme, only on the strongest hits. Two buttons form a row, three a triangle and four a square, so the count can be read from the shape. |
-| Slides (L/R) | Bright hits where the highs stand out. The direction follows the melody: rising = R, falling = L. If the sound sustains, it becomes a chain slide. |
-| Screen position | Curved paths that follow the phrases; the height follows the brightness and pitch of the melody. |
+| Multi-notes | Accents where every band hits at once (cymbal, kick and chord), biggest shapes on the strongest hits. They use the layouts of the official charts: 4 = wide rectangle around the screen centre, 3 = large triangle (apex up or down), 2 = row or compact vertical pair. Every note flies in straight from 880 px outside its corner, so the incoming notes form a bigger figure that closes onto the targets. |
+| Slides (L/R) | Bright hits where the highs stand out. The direction follows the melody: rising = R, falling = L. Sustained bright sounds become chain slides (a piece every 1/8 beat, 36 px apart). |
+| Screen position | Curved paths that follow the phrases, 192 px apart per beat as in the official charts; the height follows the brightness and pitch of the melody. |
+| Amounts per difficulty | Notes per beat, holds, multi-notes, slides, button mix and star level follow the medians of the official charts (see below). |
+
+### Learning from the official charts
+
+`dev\decompile.py` reads your own installation (it decrypts the game's CPK files locally with
+`divamgr/gamedata.py`) and turns the official charts into data:
+
+```bash
+python dev\decompile.py list
+python dev\decompile.py stats
+python dev\decompile.py compare
+python dev\decompile.py dump 1 hard
+```
+
+`list` shows the songs and levels. `stats` writes aggregate statistics of all charts. `compare` puts the
+generated charts in `mods\` next to the official medians. `dump` writes one chart as text.
+`dev\multi_patterns.py` lists the most common multi-note layouts. Everything goes to `decompiled\`, which
+is excluded from the repository: no game content is redistributed.
 | Stars | Computed from the notes per second. |
 | Song select preview | The loudest 30 s section, aligned to a bar. |
 
@@ -112,6 +130,7 @@ Charts are Future Tone DSC scripts (`script_format=0x15122517`). Extra Extreme i
 | `dev\gui_demo.py` and `dev\capture_window.ps1` | Open the interface with sample data and capture a window to review the design. |
 | `dev\sigcheck.py` | After a game update, checks that DivaLoader's signatures are still in place in `DivaMegaMix.exe`. |
 | `dev\trygame.ps1` | Installs the freshly built loader, starts the game and prints `DivaLoader.log`. `-Skip` disables parts to isolate a crash. |
-| `dev\cpk.py` | Lists and extracts files from the game's `.cpk` archives. |
+| `dev\decompile.py` | Decompiler and statistics of the official charts (`list`, `dump`, `stats`, `compare`). |
+| `dev\multi_patterns.py` | Most common multi-note layouts in the official charts. |
 
 See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for the projects DivaLoader builds on.
